@@ -65,6 +65,9 @@ def invoke(system_prompt: str, user_message: str,
     body = json.loads(response["body"].read())
     text = body["content"][0]["text"].strip()
 
+    # DEBUG — remove after fixing
+    logger.info(f"[Bedrock] RAW RESPONSE: {repr(text[:500])}")
+
     # Strip markdown code fences if model accidentally adds them
     text = re.sub(r"^```(?:json)?\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
@@ -75,11 +78,62 @@ def invoke_json(system_prompt: str, user_message: str,
                 max_tokens: int = 2048, temperature: float = 0.4) -> dict:
     """
     Like invoke(), but parses the response as JSON and returns a dict.
-    Lower temperature by default for more reliable JSON extraction.
+    Handles partial responses, extra text, truncation, and bad characters.
     """
     raw = invoke(system_prompt, user_message, max_tokens, temperature)
+
+    # 1. Try direct parse
     try:
         return json.loads(raw)
-    except json.JSONDecodeError as e:
-        logger.error(f"[Bedrock] JSON parse failed: {e}\nRaw: {raw}")
-        raise ValueError(f"Model returned non-JSON response: {raw[:300]}")
+    except json.JSONDecodeError:
+        pass
+
+    # 2. Find the FIRST complete { ... } block only
+    try:
+        start = raw.index("{")
+        # Walk forward counting braces to find the matching closing brace
+        depth = 0
+        end = start
+        for i, ch in enumerate(raw[start:], start=start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i + 1
+                    break
+        return json.loads(raw[start:end])
+    except (ValueError, json.JSONDecodeError):
+        pass
+
+    # 3. Response may be truncated — try to close it and parse what we have
+    try:
+        start = raw.index("{")
+        chunk = raw[start:]
+        # Count open braces to determine how many closing braces to add
+        open_count = chunk.count("{") - chunk.count("}")
+        # Remove trailing comma or incomplete field if present
+        chunk = chunk.rstrip().rstrip(",")
+        # Close any open string
+        if chunk.count('"') % 2 != 0:
+            chunk += '"'
+        chunk += "}" * max(open_count, 1)
+        return json.loads(chunk)
+    except Exception as e:
+        logger.error(f"[Bedrock] JSON parse failed after all attempts.\nRaw: {raw}\nError: {e}")
+        # Return a safe fallback so the bot doesn't crash
+        return {
+            "intent": "unknown",
+            "amount": None,
+            "currency": None,
+            "category": None,
+            "item_name": None,
+            "expense_date": None,
+            "day_of_week": None,
+            "time_of_day": None,
+            "note": raw[:200],
+            "language": "en",
+            "split_info": None,
+            "raw_text": user_message,
+            "confidence": 0.0
+        }

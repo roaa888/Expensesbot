@@ -128,12 +128,15 @@ def run(raw_text: str, user_id: int, username: str,
         # STEP 2A → Write to Google Sheets
         try:
             logger.info("[Pipeline] ▶ Step 2 — Writing to Google Sheets…")
+            logger.info(f"[Pipeline] parsed={parsed}")
             row_id = log_expense(parsed, user_id, username)
             result.row_id   = row_id
             result.success  = True
             logger.info(f"[Pipeline] ✅ Logged as row #{row_id}")
         except Exception as e:
+            import traceback
             logger.error(f"[Pipeline] ❌ Sheets write failed: {e}")
+            logger.error(traceback.format_exc())
             result.error = str(e)
             result.reply_text = _sheets_error_msg(lang)
             return result
@@ -248,13 +251,18 @@ def run(raw_text: str, user_id: int, username: str,
                 else "Oops, something went wrong. Try again! 😊"
             )
 
-    # ── E) Unknown ─────────────────────────────────────────────────
+    # ── F) Unknown — route through Mia instead of cold error message ──
     else:
-        result.reply_text = (
-            "🤔 لم أفهم. جرب مثل:\n`اشتريت غداء ب 5 دينار`\nأو أرسل `/help`"
-            if lang == "ar" else
-            "🤔 I didn't understand. Try:\n`spent 5 JOD on lunch`\nor send `/help`"
-        )
+        try:
+            answer = answer_general_question(raw_text, lang)
+            result.reply_text = answer
+            result.success = True
+        except Exception:
+            result.reply_text = (
+                "مرحبا! 😊 جرب أن تقول مثلاً:\n`اشتريت غداء ب 5 دينار`\nأو أرسل `/help`"
+                if lang == "ar" else
+                "Hey! 😊 Try something like:\n`spent 5 JOD on lunch`\nor send `/help`"
+            )
 
     return result
 
