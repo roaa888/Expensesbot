@@ -39,19 +39,17 @@ TOMORROW = {tomorrow}
 YOUR JOB: Understand what the user wants and extract it into a precise JSON object.
 
 ━━━ INTENTS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-• "log_expense"      → user is recording a purchase or payment
-• "split_bill"       → user wants to split a bill (calculate their share)
-• "query_report"     → user wants spending analysis or recommendations
-• "query_history"    → user wants to see past expenses
+• "log_expense"     → user is recording a purchase or payment
+• "split_bill"      → user wants to split a bill (calculate their share)
+• "query_report"    → user wants spending analysis or recommendations  
+• "query_history"   → user wants to see past expenses
 • "delete_expenses"  → user wants to delete expenses
-                       e.g. "delete all", "clear history", "احذف كل المصاريف", "امسح"
-• "general_question" → ANY greeting, casual chat, or general question — USE THIS LIBERALLY
-                       e.g. "hi", "hello", "مرحبا", "كيف حالك", "how are you",
-                            "good morning", "صباح الخير", "what can you do",
-                            "help me save money", "give me advice", "شو تقدر تسوي"
-                       ⚠️  IMPORTANT: Single words like "hi", "hello", "hey", "مرحبا"
-                           MUST ALWAYS be "general_question", never "unknown"
-• "unknown"          → ONLY if truly none of the above fit (very rare)
+                      (e.g. "delete all expenses", "clear my history",
+                       "احذف كل المصاريف", "امسح السجلات",
+                       "delete last entry", "احذف آخر مصروف")
+                      (e.g. "how are you?", "what can you do?", "give me advice",
+                       "what's the best way to save money?", "مرحبا", "كيف حالك؟")
+• "unknown"         → truly cannot determine intent
 
 ━━━ EXTRACTION RULES ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. AMOUNT — Extract the number. Convert Arabic-Indic (٠١٢٣٤٥٦٧٨٩) to Western.
@@ -88,26 +86,21 @@ YOUR JOB: Understand what the user wants and extract it into a precise JSON obje
     "month" → delete current month only
 
 ━━━ OUTPUT FORMAT ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CRITICAL RULES:
-- Return ONLY ONE JSON object — even if the message mentions multiple expenses
-- If multiple expenses are mentioned, extract only the FIRST one
-- No explanation, no markdown, no code fences, no extra text
-- Start your response with {{ and end with }}
-
+Return ONLY this JSON, no other text:
 {{
-  "intent": "<intent>",
-  "amount": <number or null>,
-  "currency": "<3-letter code or null>",
-  "category": "<English category or null>",
-  "item_name": "<original language or null>",
-  "expense_date": "<YYYY-MM-DD or null>",
-  "day_of_week": "<English day name or null>",
-  "time_of_day": "<time or null>",
-  "note": "<if multiple expenses mentioned, list the others here>",
-  "language": "<ar or en>",
-  "split_info": null,
-  "raw_text": "<original input>",
-  "confidence": <0.0-1.0>
+  "intent":        "<intent>",
+  "amount":        <number or null>,
+  "currency":      "<3-letter code or null>",
+  "category":      "<English category or null>",
+  "item_name":     "<original language or null>",
+  "expense_date":  "<YYYY-MM-DD or null>",
+  "day_of_week":   "<English day name or null>",
+  "time_of_day":   "<time or null>",
+  "note":          "<extra info, or user's question if general_question>",
+  "language":      "<ar or en>",
+  "split_info":    {{"total_bill": null, "number_of_people": null, "user_share": null}} or null,
+  "raw_text":      "<original user input unchanged>",
+  "confidence":    <0.0-1.0>
 }}
 """
 
@@ -127,11 +120,9 @@ def parse(raw_text: str) -> dict:
         .replace("{yesterday}", yesterday)
         .replace("{tomorrow}", tomorrow)
         .replace("{categories}", ", ".join(CATEGORIES))
-        .replace("{{", "{")
-        .replace("}}", "}")
     )
 
     logger.info(f"[Agent1-Parser] Input: {raw_text!r}")
-    result = invoke_json(system, raw_text, max_tokens=1024, temperature=0.8)
+    result = invoke_json(system, raw_text)
     logger.info(f"[Agent1-Parser] Output: {result}")
     return result
