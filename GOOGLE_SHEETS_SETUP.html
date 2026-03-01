@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔑 Google Sheets Setup — Finance Bot</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:     #06060f;
+  --panel:  #0d0d20;
+  --card:   #111128;
+  --border: #1e1e40;
+  --blue:   #4a90d9;
+  --green:  #34a853;
+  --yellow: #fbbc04;
+  --red:    #ea4335;
+  --text:   #d8d8f0;
+  --muted:  #4a5080;
+}
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.hdr {
+  background: linear-gradient(135deg, #0a0a28, #0c1e35);
+  padding: 22px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+}
+.hdr-icon { font-size: 38px; }
+.hdr h1   { font-size: 22px; color: #5bafd4; font-weight: 700; }
+.hdr p    { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.hdr-badge {
+  margin-left: auto;
+  background: #0d2a1a; border: 1px solid #1a4a2a;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; color: var(--green);
+}
+
+/* ── PROGRESS BAR ── */
+.progress-wrap {
+  background: var(--panel); padding: 16px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 0;
+  overflow-x: auto;
+}
+.step-dot {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; cursor: pointer; min-width: 80px;
+}
+.dot-circle {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: var(--muted);
+  transition: all 0.3s; background: var(--card);
+  flex-shrink: 0;
+}
+.dot-label { font-size: 10px; color: var(--muted); text-align: center; white-space: nowrap; }
+.step-dot.done   .dot-circle { background: var(--green);  border-color: var(--green);  color: #fff; }
+.step-dot.active .dot-circle { background: var(--blue);   border-color: var(--blue);   color: #fff; box-shadow: 0 0 12px rgba(74,144,217,.4); }
+.connector { flex: 1; height: 2px; background: var(--border); min-width: 20px; margin-bottom: 18px; }
+.connector.done { background: var(--green); }
+
+/* ── CONTENT ── */
+.content { max-width: 780px; margin: 0 auto; padding: 32px 24px; }
+.step-page { display: none; }
+.step-page.active { display: block; }
+
+/* Step header */
+.step-hdr { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+.step-num {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), #3a70b9);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 700; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(74,144,217,.3);
+}
+.step-hdr h2 { font-size: 20px; color: #fff; margin-bottom: 4px; }
+.step-hdr p  { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+/* Card */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px 22px; margin-bottom: 18px;
+}
+.card h3 { font-size: 14px; color: #5bafd4; margin-bottom: 12px; }
+
+/* Instruction list */
+.inst-list { counter-reset: inst; }
+.inst-item {
+  display: flex; gap: 12px; margin-bottom: 16px;
+  align-items: flex-start;
+}
+.inst-num {
+  counter-increment: inst;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #1a2a4a; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; color: var(--blue); font-weight: 700;
+  flex-shrink: 0; margin-top: 1px;
+}
+.inst-num::before { content: counter(inst); }
+.inst-body { font-size: 13px; line-height: 1.6; color: var(--text); }
+.inst-body strong { color: #fff; }
+.inst-body code {
+  background: #0d1a2e; border: 1px solid var(--border);
+  padding: 1px 6px; border-radius: 4px;
+  font-family: 'Courier New', monospace; font-size: 12px;
+  color: #7ec8e3;
+}
+
+/* Screenshot placeholder */
+.screenshot {
+  background: #080818; border: 1px dashed var(--border);
+  border-radius: 8px; padding: 20px;
+  text-align: center; color: var(--muted);
+  font-size: 12px; margin: 12px 0;
+}
+.screenshot .ss-icon { font-size: 32px; margin-bottom: 8px; }
+
+/* URL display */
+.url-box {
+  background: #080818; border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 16px;
+  font-family: 'Courier New', monospace; font-size: 13px;
+  margin: 10px 0; display: flex; align-items: center; gap: 10px;
+}
+.url-box a { color: var(--blue); text-decoration: none; }
+.url-box a:hover { text-decoration: underline; }
+
+/* Highlight box */
+.highlight-box {
+  border-radius: 8px; padding: 14px 16px;
+  margin: 12px 0; font-size: 13px; line-height: 1.6;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.highlight-box.info    { background: #0d1e35; border: 1px solid #1a3a5a; }
+.highlight-box.success { background: #0d2a1a; border: 1px solid #1a4a2a; }
+.highlight-box.warn    { background: #2a1a0d; border: 1px solid #4a3a1a; }
+.highlight-box.tip     { background: #1a0d2a; border: 1px solid #3a1a4a; }
+.hb-icon { font-size: 18px; flex-shrink: 0; }
+.hb-text strong { display: block; margin-bottom: 4px; }
+
+/* Code block */
+.code-block {
+  background: #060610; border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; margin: 10px 0;
+  font-family: 'Courier New', monospace; font-size: 12px;
+  line-height: 1.8; overflow-x: auto; position: relative;
+}
+.code-line.comment  { color: #4a6a5a; }
+.code-line.key      { color: #7ec8e3; }
+.code-line.val      { color: #a8d8a0; }
+.code-line.normal   { color: var(--text); }
+.code-line.highlight{ background: #1a2a3a; border-radius: 3px; padding: 0 4px; }
+.copy-btn {
+  position: absolute; top: 8px; right: 8px;
+  background: var(--card); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 6px; font-size: 11px;
+  color: var(--muted); cursor: pointer; transition: all 0.2s;
+}
+.copy-btn:hover { color: var(--blue); border-color: var(--blue); }
+
+/* Input field */
+.input-group { margin: 14px 0; }
+.input-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.5px; }
+.inp {
+  width: 100%; background: #080818; border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px;
+  color: var(--text); font-size: 14px; font-family: 'Courier New', monospace;
+  outline: none; transition: border-color 0.2s;
+}
+.inp:focus { border-color: var(--blue); }
+.inp.valid { border-color: var(--green); }
+.inp-hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+/* Tag/badge */
+.badge-green { background: #0d2a1a; border: 1px solid #1a4a2a; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: var(--green); }
+.badge-blue  { background: #0d1e35; border: 1px solid #1a3a5a; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: var(--blue);  }
+
+/* Nav buttons */
+.nav { display: flex; gap: 12px; margin-top: 28px; justify-content: space-between; align-items: center; }
+.btn {
+  padding: 11px 24px; border-radius: 8px; font-size: 14px;
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+  border: none;
+}
+.btn-primary { background: var(--blue);  color: #fff; }
+.btn-primary:hover { background: #3a80c9; }
+.btn-secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
+.btn-success { background: var(--green); color: #fff; }
+.btn-success:hover { background: #2a9843; }
+
+/* Checklist */
+.checklist { list-style: none; }
+.checklist li {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.checklist li:last-child { border-bottom: none; }
+.check-icon { font-size: 16px; }
+.check-done  { color: var(--green); }
+.check-todo  { color: var(--muted); }
+
+/* Sheet preview */
+.sheet-preview {
+  overflow-x: auto; margin: 12px 0;
+}
+.sheet-table {
+  border-collapse: collapse; width: 100%; font-size: 11px;
+  font-family: 'Courier New', monospace;
+}
+.sheet-table th {
+  background: #1a2a4a; color: var(--blue);
+  padding: 6px 10px; text-align: left;
+  border: 1px solid var(--border); white-space: nowrap;
+}
+.sheet-table td {
+  padding: 5px 10px; border: 1px solid var(--border);
+  color: var(--text); white-space: nowrap;
+}
+.sheet-table tr:nth-child(even) td { background: #0a0a1e; }
+
+/* Final success screen */
+.success-screen {
+  text-align: center; padding: 40px 20px;
+}
+.success-icon { font-size: 64px; margin-bottom: 16px; }
+.success-title { font-size: 28px; color: var(--green); font-weight: 700; margin-bottom: 8px; }
+.success-sub { font-size: 15px; color: var(--muted); margin-bottom: 30px; }
+.cmd-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 20px;
+  font-family: 'Courier New', monospace; font-size: 14px;
+  text-align: left; max-width: 480px; margin: 0 auto 16px;
+}
+.cmd-card .cmd-comment { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-icon">🔑</div>
+  <div>
+    <h1>Google Sheets Setup Guide</h1>
+    <p>Connect your Finance Bot to Google Sheets in 7 steps (~10 minutes)</p>
+  </div>
+  <div class="hdr-badge">✅ No coding required</div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-wrap">
+  <div class="step-dot active" id="dot-0" onclick="goTo(0)">
+    <div class="dot-circle">1</div>
+    <div class="dot-label">GCP Project</div>
+  </div>
+  <div class="connector" id="conn-0"></div>
+  <div class="step-dot" id="dot-1" onclick="goTo(1)">
+    <div class="dot-circle">2</div>
+    <div class="dot-label">Enable APIs</div>
+  </div>
+  <div class="connector" id="conn-1"></div>
+  <div class="step-dot" id="dot-2" onclick="goTo(2)">
+    <div class="dot-circle">3</div>
+    <div class="dot-label">Service Account</div>
+  </div>
+  <div class="connector" id="conn-2"></div>
+  <div class="step-dot" id="dot-3" onclick="goTo(3)">
+    <div class="dot-circle">4</div>
+    <div class="dot-label">Download Key</div>
+  </div>
+  <div class="connector" id="conn-3"></div>
+  <div class="step-dot" id="dot-4" onclick="goTo(4)">
+    <div class="dot-circle">5</div>
+    <div class="dot-label">Create Sheet</div>
+  </div>
+  <div class="connector" id="conn-4"></div>
+  <div class="step-dot" id="dot-5" onclick="goTo(5)">
+    <div class="dot-circle">6</div>
+    <div class="dot-label">Share Sheet</div>
+  </div>
+  <div class="connector" id="conn-5"></div>
+  <div class="step-dot" id="dot-6" onclick="goTo(6)">
+    <div class="dot-circle">7</div>
+    <div class="dot-label">Configure</div>
+  </div>
+  <div class="connector" id="conn-6"></div>
+  <div class="step-dot" id="dot-7" onclick="goTo(7)">
+    <div class="dot-circle">✓</div>
+    <div class="dot-label">Done!</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ═══ STEP 0 — Create GCP Project ═══════════════════════════ -->
+  <div class="step-page active" id="page-0">
+    <div class="step-hdr">
+      <div class="step-num">1</div>
+      <div>
+        <h2>Create a Google Cloud Project</h2>
+        <p>You need a free Google Cloud project to enable the Sheets API and create credentials.</p>
+      </div>
+    </div>
+
+    <div class="highlight-box info">
+      <div class="hb-icon">💡</div>
+      <div class="hb-text">
+        <strong>Google Cloud is free for this use case</strong>
+        The Google Sheets API has a generous free tier (300 requests/minute).
+        You will not be charged for normal bot usage.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Instructions</h3>
+      <div class="inst-list">
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Go to <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--blue)"><strong>console.cloud.google.com</strong></a> and sign in with your Google account</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click the project dropdown at the top → click <strong>"New Project"</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Name it <code>finance-bot</code> → click <strong>"Create"</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Wait ~10 seconds → make sure <code>finance-bot</code> is selected in the top dropdown</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screenshot">
+      <div class="ss-icon">🖥️</div>
+      <div>You should see the GCP Console dashboard with <strong>"finance-bot"</strong> in the top bar</div>
+    </div>
+
+    <div class="nav">
+      <div></div>
+      <button class="btn btn-primary" onclick="goTo(1)">Next: Enable APIs →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 1 — Enable APIs ════════════════════════════════ -->
+  <div class="step-page" id="page-1">
+    <div class="step-hdr">
+      <div class="step-num">2</div>
+      <div>
+        <h2>Enable Google Sheets & Drive APIs</h2>
+        <p>You need to enable both APIs for the bot to read and write your spreadsheet.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Enable Google Sheets API</h3>
+      <div class="inst-list">
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">In the left menu → <strong>APIs & Services</strong> → <strong>Library</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Search for <code>Google Sheets API</code></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click on it → click the blue <strong>"Enable"</strong> button</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Enable Google Drive API</h3>
+      <div class="inst-list">
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Go back to <strong>Library</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Search for <code>Google Drive API</code></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click on it → click <strong>"Enable"</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-box success">
+      <div class="hb-icon">✅</div>
+      <div class="hb-text">After enabling both, you'll see them listed under <strong>APIs & Services → Enabled APIs</strong></div>
+    </div>
+
+    <div class="nav">
+      <button class="btn btn-secondary" onclick="goTo(0)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(2)">Next: Create Service Account →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 2 — Service Account ════════════════════════════ -->
+  <div class="step-page" id="page-2">
+    <div class="step-hdr">
+      <div class="step-num">3</div>
+      <div>
+        <h2>Create a Service Account</h2>
+        <p>A service account is like a "robot user" that lets the bot access your Google Sheet programmatically.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Instructions</h3>
+      <div class="inst-list">
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Go to <strong>APIs & Services</strong> → <strong>Credentials</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click <strong>+ Create Credentials</strong> → choose <strong>"Service Account"</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">
+            Fill in the form:<br>
+            • <strong>Service account name:</strong> <code>finance-bot-service</code><br>
+            • <strong>Service account ID:</strong> auto-filled (leave as is)<br>
+            • <strong>Description:</strong> <code>Finance bot sheets access</code>
+          </div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click <strong>"Create and Continue"</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">On "Grant access" and "Grant users access" steps → click <strong>"Continue"</strong> and <strong>"Done"</strong> (skip both)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-box tip">
+      <div class="hb-icon">📋</div>
+      <div class="hb-text">
+        <strong>Save the service account email!</strong>
+        After creating, you'll see an email like:<br>
+        <code>finance-bot-service@finance-bot-XXXXX.iam.gserviceaccount.com</code><br>
+        You'll need it in Step 6 to share your sheet.
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">Paste your service account email here (for reference)</label>
+      <input class="inp" id="sa-email" type="text"
+             placeholder="finance-bot-service@finance-bot-XXXXX.iam.gserviceaccount.com"
+             oninput="updateEmailRef(this.value)">
+      <div class="inp-hint">This is saved only in your browser — used in Step 6</div>
+    </div>
+
+    <div class="nav">
+      <button class="btn btn-secondary" onclick="goTo(1)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(3)">Next: Download JSON Key →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 3 — Download Key ════════════════════════════════ -->
+  <div class="step-page" id="page-3">
+    <div class="step-hdr">
+      <div class="step-num">4</div>
+      <div>
+        <h2>Download the JSON Credentials File</h2>
+        <p>This file contains the private key that lets the bot authenticate as your service account.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Instructions</h3>
+      <div class="inst-list">
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">In <strong>Credentials</strong>, find your new service account in the list → click on it</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Go to the <strong>"Keys"</strong> tab (at the top)</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click <strong>"Add Key"</strong> → <strong>"Create new key"</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Select <strong>"JSON"</strong> → click <strong>"Create"</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">A <code>.json</code> file downloads automatically</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">
+            <strong>Rename it to:</strong> <code>google_credentials.json</code><br>
+            <strong>Move it to your project folder:</strong> <code>finance_bot/google_credentials.json</code>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-box warn">
+      <div class="hb-icon">⚠️</div>
+      <div class="hb-text">
+        <strong>Keep this file secret!</strong>
+        Never commit <code>google_credentials.json</code> to Git or share it publicly.
+        Add it to your <code>.gitignore</code> file.
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-line comment"># The downloaded file looks like this:</div>
+      <div class="code-line normal">{</div>
+      <div class="code-line key">  "type": <span class="val">"service_account"</span>,</div>
+      <div class="code-line key">  "project_id": <span class="val">"finance-bot-XXXXX"</span>,</div>
+      <div class="code-line key">  "private_key_id": <span class="val">"..."</span>,</div>
+      <div class="code-line key">  "private_key": <span class="val">"-----BEGIN RSA PRIVATE KEY-----\n..."</span>,</div>
+      <div class="code-line key highlight">  "client_email": <span class="val">"finance-bot-service@..."</span>,  <span style="color:#4a6a5a">← SAVE THIS</span></div>
+      <div class="code-line normal">  ...</div>
+      <div class="code-line normal">}</div>
+    </div>
+
+    <div class="nav">
+      <button class="btn btn-secondary" onclick="goTo(2)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(4)">Next: Create Google Sheet →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 4 — Create Sheet ════════════════════════════════ -->
+  <div class="step-page" id="page-4">
+    <div class="step-hdr">
+      <div class="step-num">5</div>
+      <div>
+        <h2>Create Your Google Sheet</h2>
+        <p>This is where all your expenses will be logged and the monthly summary will appear.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Instructions</h3>
+      <div class="inst-list">
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Go to <a href="https://sheets.google.com" target="_blank" style="color:var(--blue)"><strong>sheets.google.com</strong></a></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click <strong>"Blank spreadsheet"</strong> (the big + button)</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Name it: <code>Finance Bot — Expenses</code> (click "Untitled spreadsheet" at top)</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">
+            <strong>Copy the Sheet ID from the URL bar:</strong><br>
+            The URL looks like:<br>
+            <code>https://docs.google.com/spreadsheets/d/<span style="color:var(--yellow)">1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms</span>/edit</code><br>
+            The highlighted part between <code>/d/</code> and <code>/edit</code> is your <strong>Sheet ID</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label class="input-label">Paste your Google Sheet ID here</label>
+      <input class="inp" id="sheet-id"
+             placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+             oninput="validateSheetId(this)">
+      <div class="inp-hint" id="sheet-id-hint">Should be ~44 characters long</div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <h3>📊 What Your Sheet Will Look Like After Setup</h3>
+      <div class="sheet-preview">
+        <table class="sheet-table">
+          <tr>
+            <th>Row ID</th><th>Date</th><th>Day</th><th>Time</th>
+            <th>Category</th><th>Item Name</th><th>Amount</th>
+            <th>Currency</th><th>Note</th><th>Language</th>
+          </tr>
+          <tr>
+            <td>1</td><td>2026-02-20</td><td>Friday</td><td>morning</td>
+            <td>Food & Dining</td><td>غداء</td><td>5</td>
+            <td>JOD</td><td></td><td>ar</td>
+          </tr>
+          <tr>
+            <td>2</td><td>2026-02-20</td><td>Friday</td><td></td>
+            <td>Electronics</td><td>charger</td><td>10</td>
+            <td>JOD</td><td></td><td>ar</td>
+          </tr>
+          <tr>
+            <td>3</td><td>2026-02-21</td><td>Saturday</td><td>evening</td>
+            <td>Food & Dining</td><td>dinner split</td><td>20</td>
+            <td>JOD</td><td>1/3 of 60</td><td>en</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="btn btn-secondary" onclick="goTo(3)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(5)">Next: Share the Sheet →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 5 — Share Sheet ═════════════════════════════════ -->
+  <div class="step-page" id="page-5">
+    <div class="step-hdr">
+      <div class="step-num">6</div>
+      <div>
+        <h2>Share the Sheet with Your Service Account</h2>
+        <p>The bot needs Editor access to write rows. You grant this by sharing like you'd share with a person.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Instructions</h3>
+      <div class="inst-list">
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">In your Google Sheet, click the <strong>"Share"</strong> button (top-right, green)</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">
+            In the "Add people and groups" box, paste your <strong>service account email</strong>:
+            <div style="margin-top:8px; background:#080818; border:1px solid var(--border); padding:10px 14px; border-radius:6px; font-family:monospace; font-size:13px; color:var(--yellow)" id="sa-display">
+              finance-bot-service@finance-bot-XXXXX.iam.gserviceaccount.com
+            </div>
+          </div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Change the permission from "Viewer" to <strong>"Editor"</strong></div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Uncheck "Notify people" (service accounts can't receive emails)</div>
+        </div>
+        <div class="inst-item">
+          <div class="inst-num"></div>
+          <div class="inst-body">Click <strong>"Share"</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="highlight-box success">
+      <div class="hb-icon">✅</div>
+      <div class="hb-text">
+        The service account email should now appear in the "People with access" list with <strong>Editor</strong> role.
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="btn btn-secondary" onclick="goTo(4)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(6)">Next: Configure the Bot →</button>
+    </div>
+  </div>
+
+  <!-- ═══ STEP 6 — Configure config.py ════════════════════════ -->
+  <div class="step-page" id="page-6">
+    <div class="step-hdr">
+      <div class="step-num">7</div>
+      <div>
+        <h2>Update config.py</h2>
+        <p>Paste your Google Sheet ID into the config file — that's the only thing you need to change.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Open <code>finance_bot/config.py</code> and update this line:</h3>
+      <div class="code-block" id="config-display">
+        <button class="copy-btn" onclick="copyConfig()">Copy</button>
+        <div class="code-line comment"># ── Google Sheets ────────────────────────────────────</div>
+        <div class="code-line key">GOOGLE_CREDENTIALS_FILE <span class="normal">= </span><span class="val">"google_credentials.json"</span><span class="comment">  # ← file is already in the right place</span></div>
+        <div class="code-line key highlight" id="sheet-id-line">GOOGLE_SHEET_ID <span class="normal">= </span><span class="val" id="sheet-id-val">"YOUR_GOOGLE_SHEET_ID_HERE"</span><span class="comment">  # ← PASTE YOUR ID HERE</span></div>
+      </div>
+    </div>
+
+    <div class="highlight-box info">
+      <div class="hb-icon">📁</div>
+      <div class="hb-text">
+        <strong>File locations check:</strong><br>
+        <code>finance_bot/</code><br>
+        <code>├── google_credentials.json</code> <span class="badge-green">✅ downloaded in Step 4</span><br>
+        <code>├── config.py</code> <span class="badge-blue">← edit GOOGLE_SHEET_ID now</span><br>
+        <code>└── main.py</code>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Run the connection test:</h3>
+      <div class="code-block">
+        <div class="code-line comment"># In your terminal, from the finance_bot/ folder:</div>
+        <div class="code-line normal">pip install -r requirements.txt</div>
+        <div class="code-line normal">python test_sheets.py</div>
+      </div>
+      <div style="margin-top:12px; font-size:13px; color:var(--muted)">Expected output:</div>
+      <div class="code-block" style="margin-top:8px">
+        <div class="code-line" style="color:var(--green)">✅ Credentials file found: google_credentials.json</div>
+        <div class="code-line" style="color:var(--green)">✅ Google Sheets client authenticated</div>
+        <div class="code-line" style="color:var(--green)">✅ Spreadsheet opened: 'Finance Bot — Expenses'</div>
+        <div class="code-line" style="color:var(--green)">✅ Headers written to Expenses sheet</div>
+        <div class="code-line" style="color:var(--green)">✅ Test row written and cleaned up</div>
+        <div class="code-line" style="color:var(--green)">🎉 Google Sheets is ready!</div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="btn btn-secondary" onclick="goTo(5)">← Back</button>
+      <button class="btn btn-success" onclick="goTo(7)">🎉 Setup Complete!</button>
+    </div>
+  </div>
+
+  <!-- ═══ FINAL SUCCESS SCREEN ════════════════════════════════ -->
+  <div class="step-page" id="page-7">
+    <div class="success-screen">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">Google Sheets is Ready!</div>
+      <div class="success-sub">Your Finance Bot is fully configured. Start it with:</div>
+
+      <div class="cmd-card">
+        <div class="code-line comment"># 1. Test everything first</div>
+        <div class="code-line normal" style="color:var(--green)">python test_agents.py</div>
+        <div class="code-line normal" style="color:var(--green)">python test_sheets.py</div>
+        <br>
+        <div class="code-line comment"># 2. Launch the bot!</div>
+        <div class="code-line normal" style="color:#fff; font-size:16px; font-weight:bold">python main.py</div>
+      </div>
+
+      <div style="margin:24px 0; text-align:left; max-width:480px; margin:24px auto;">
+        <ul class="checklist">
+          <li><span class="check-icon check-done">✅</span> Google Cloud Project created</li>
+          <li><span class="check-icon check-done">✅</span> Sheets + Drive APIs enabled</li>
+          <li><span class="check-icon check-done">✅</span> Service account created</li>
+          <li><span class="check-icon check-done">✅</span> google_credentials.json downloaded</li>
+          <li><span class="check-icon check-done">✅</span> Google Sheet created & shared</li>
+          <li><span class="check-icon check-done">✅</span> GOOGLE_SHEET_ID set in config.py</li>
+          <li><span class="check-icon check-done">✅</span> All 4 recommendation triggers active</li>
+        </ul>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:560px; margin:0 auto; text-align:left">
+        <div class="card" style="border-left:3px solid var(--blue)">
+          <div style="font-size:12px; color:var(--blue); font-weight:700; margin-bottom:8px">TRIGGER 1 — After every expense</div>
+          <div style="font-size:12px; color:var(--muted)">Quick inline tip from Agent 2 after every logged expense</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--yellow)">
+          <div style="font-size:12px; color:var(--yellow); font-weight:700; margin-bottom:8px">TRIGGER 2 — /report or /analyze</div>
+          <div style="font-size:12px; color:var(--muted)">Full deep report on demand at any time</div>
+        </div>
+        <div class="card" style="border-left:3px solid var(--green)">
+          <div style="font-size:12px; color:var(--green); font-weight:700; margin-bottom:8px">TRIGGER 3 — Every Sunday</div>
+          <div style="font-size:12px; color:var(--muted)">Auto weekly digest at 20:00 UTC</div>
+        </div>
+        <div class="card" style="border-left:3px solid #e870c0">
+          <div style="font-size:12px; color:#e870c0; font-weight:700; margin-bottom:8px">TRIGGER 4 — 1st of Month</div>
+          <div style="font-size:12px; color:var(--muted)">Auto monthly summary at 09:00 UTC</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:28px" onclick="goTo(0)">↩ Review Setup Steps</button>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+let current = 0;
+let savedEmail = '';
+let savedSheetId = '';
+
+function goTo(n) {
+  document.getElementById(`page-${current}`).classList.remove('active');
+  document.getElementById(`dot-${current}`).classList.remove('active');
+  if (current < n) {
+    document.getElementById(`dot-${current}`).classList.add('done');
+    for (let i = 0; i < current; i++) {
+      document.getElementById(`conn-${i}`).classList.add('done');
+    }
+  }
+  current = n;
+  document.getElementById(`page-${n}`).classList.add('active');
+  document.getElementById(`dot-${n}`)?.classList.add('active');
+  document.getElementById(`dot-${n}`)?.classList.remove('done');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function updateEmailRef(val) {
+  savedEmail = val;
+  const d = document.getElementById('sa-display');
+  if (d) d.textContent = val || 'finance-bot-service@finance-bot-XXXXX.iam.gserviceaccount.com';
+}
+
+function validateSheetId(input) {
+  const val = input.value.trim();
+  savedSheetId = val;
+  const hint = document.getElementById('sheet-id-hint');
+  if (val.length > 20) {
+    input.classList.add('valid');
+    input.classList.remove('invalid');
+    hint.textContent = `✅ Looks good! (${val.length} chars)`;
+    hint.style.color = 'var(--green)';
+    // Update the config display
+    const el = document.getElementById('sheet-id-val');
+    if (el) el.textContent = `"${val}"`;
+  } else if (val.length > 0) {
+    hint.textContent = `Sheet IDs are usually ~44 characters (you have ${val.length})`;
+    hint.style.color = 'var(--yellow)';
+    input.classList.remove('valid');
+  } else {
+    hint.textContent = 'Should be ~44 characters long';
+    hint.style.color = 'var(--muted)';
+    input.classList.remove('valid');
+  }
+}
+
+function copyConfig() {
+  const id = savedSheetId || 'YOUR_GOOGLE_SHEET_ID_HERE';
+  const text = `GOOGLE_CREDENTIALS_FILE = "google_credentials.json"\nGOOGLE_SHEET_ID = "${id}"`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✓ Copied!';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

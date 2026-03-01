@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────
+#  Bilingual Finance Bot — Python Dependencies
+#  Install with:  pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────
+
+# Telegram bot framework
+python-telegram-bot==20.7
+
+# AWS Bedrock (Claude Sonnet 4.6)
+boto3>=1.34.0
+botocore>=1.34.0
+
+# Google Sheets
+gspread>=6.0.0
+google-auth>=2.27.0
+
+# Voice transcription (runs locally, no API key needed)
+openai-whisper        # local Whisper STT
+pydub                 # .ogg → .wav conversion
+
+# Utilities
+requests>=2.31.0
+python-dateutil>=2.8.0
+
+# ─────────────────────────────────────────────────────────────
+#  System Dependencies (NOT pip — install separately)
+# ─────────────────────────────────────────────────────────────
+#  ffmpeg (required for pydub audio conversion):
+#    Ubuntu/Debian:  sudo apt install ffmpeg
+#    macOS:          brew install ffmpeg
+#    Windows:        https://ffmpeg.org/download.html
